@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+	<meta charset="UTF-8"/>
+	<meta name="description" content="Data Visualisation Project"/>
+	<meta name="keywords" content="HTML, CSS"/>
+	<meta name="author"	content="Your name here"/>
+	<link rel="stylesheet" type="text/css" href="style/style.css"/>
+	<script src="https://d3js.org/d3.v6.min.js"></script>
+	<title>Sarawak Visitor Arrivals</title>
+</head>
+
+<body>
+	<h1 id="center">Sarawak Visitors Arrivals</h1>
+
+	<button id="prevYear">Previous</button>
+	<span id="currentYear"></span>
+	<button id="nextYear">Next</button>
+
+	<div id="tooltip"></div>
+	
+	<script>
+		var w = 1500;
+		var h = 800;
+	
+		var projection = d3.geoMercator()
+			.translate([w / 2, h / 2])
+			.scale(135);
+	
+		var path = d3.geoPath()
+			.projection(projection);
+
+		var svg = d3.select("#mapContainer")
+			.append("svg")
+			.attr("width", w)
+			.attr("height", h)
+			.attr("fill", "gold");
+	
+		var svg = d3.select("body")
+			.append("svg")
+			.attr("width", w)
+			.attr("height", h)
+			.attr("fill", "gold");
+	
+		var tooltip = d3.select("#tooltip");
+
+		var currentYearIndex = 0; // To keep track of the current year index
+		var years = []; // Array to store the years from the data
+
+		// Function to update the map for a given year
+		function updateMapForYear(year) {
+			// Update your map based on the year
+			// This might involve filtering data and redrawing parts of the map
+			d3.select("#currentYear").text(year); // Update the current year display
+		}
+
+		// Function to handle year navigation
+		function changeYear(direction) {
+			if (direction === 'next' && currentYearIndex < years.length - 1) {
+				currentYearIndex++;
+			} else if (direction === 'prev' && currentYearIndex > 0) {
+				currentYearIndex--;
+			}
+			updateMapForYear(years[currentYearIndex]);
+		}
+
+		// Setting up event listeners for buttons
+		d3.select("#prevYear").on("click", function() { changeYear('prev'); });
+		d3.select("#nextYear").on("click", function() { changeYear('next'); });
+
+		// Load your data from a CSV file
+		d3.csv("your_data.csv").then(function(data) {
+			// Extract years from the data and sort them
+			years = Array.from(new Set(data.map(d => d.year))).sort();})
+
+		// Initialize the map with the first year's data
+		updateMapForYear(years[currentYearIndex]);
+	
+		d3.json("world_map.json").then(function (json) {
+			svg.selectAll("path")
+				.data(json.features)
+				.enter()
+				.append("path")
+				.attr("d", path)
+				.attr("class", "country")
+				.on("mouseover", function (event, d) {
+					var centroid = path.centroid(d);
+					var xPosition = centroid[0];
+					var yPosition = centroid[1];
+	
+					tooltip.style("display", "block")
+						   .html(d.properties.name)
+						   .style("left", xPosition + "px")
+						   .style("top", yPosition + "px");
+	
+					d3.select(this)
+					  .style("fill", "orange");
+				})
+				.on("mouseout", function (d) {
+					tooltip.style("display", "none");
+					d3.select(this)
+					  .style("fill", "gold");
+				})
+				.on("click", function (d) {
+					console.log("Clicked on", d.properties.name);
+				});
+		});
+	</script>
+	
+</body>
+</html>
+	
+	
