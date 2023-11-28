@@ -2,143 +2,172 @@
 <html lang="en">
 
 <head>
-	<meta charset="UTF-8"/>
-	<meta name="description" content="Data Visualisation Project"/>
-	<meta name="keywords" content="HTML, CSS"/>
-	<meta name="author"	content="Your name here"/>
-	<link rel="stylesheet" type="text/css" href="style/style.css"/>
-	<script src="https://d3js.org/d3.v6.min.js"></script>
-	<title>Sarawak Visitor Arrivals</title>
+  <meta charset="UTF-8" />
+  <meta name="description" content="Data Visualisation Project" />
+  <meta name="keywords" content="HTML, CSS" />
+  <meta name="author" content="Your name here" />
+  <link rel="stylesheet" type="text/css" href="style/style.css" />
+  <script src="https://d3js.org/d3.v6.min.js"></script>
+  <title>Sarawak Visitor Arrivals</title>
 </head>
 
+<style>
+  #currentYear {
+    color: white;
+  }
+
+  button {
+    margin-left: 20px;
+    margin-right: 20px;
+  }
+
+  button:hover {
+    background-color: grey;
+    color: white; /* Text color when hovering */
+    border: 1px solid grey; /* Border color when hovering */
+}
+
+</style>
+
 <body>
-	<h1 id="center">Sarawak Visitors Arrivals</h1>
+  <h1 id="center">Sarawak Visitors Arrivals</h1>
 
-	<button id="prevYear">Previous</button>
-	<span id="currentYear"></span>
-	<button id="nextYear">Next</button>
+  <button id="prevYear">Previous</button>
+  <span id="currentYear"></span>
+  <button id="nextYear">Next</button>
 
-	<div id="tooltip"></div>
-	
-	<script>
-		var w = 1500;
-		var h = 800;
+  <div id="tooltip"></div>
 
-		var projection = d3.geoMercator()
-			.translate([w / 2, h / 2])
-			.scale(135);
+  <script>
+    var w = 1500;
+    var h = 800;
 
-		var path = d3.geoPath()
-			.projection(projection);
+    var currentYearIndex = 0;
+    var years = ["visitor_17", "visitor_18", "visitor_19", "visitor_20", "visitor_21"];
 
-		var svg = d3.select("body")
-			.append("svg")
-			.attr("width", w)
-			.attr("height", h)
-			.attr("fill", "gold");
+    var colorScales = {}; // Create an object to store color scales for each year
 
-		var tooltip = d3.select("#tooltip");
+    years.forEach(function (year) {
+      colorScales[year] = d3.scaleLinear()
+        .domain([0, 1000000]) // Adjust the domain as needed
+        .range(["#ffffcc", "#800026"]);
+    });
 
-		var currentYearIndex = 0; // To keep track of the current year index
-		var years = []; // Array to store the years from the data
+    var projection = d3.geoMercator()
+      .translate([w / 2, h / 2])
+      .scale(135);
 
-		function updateMapForYear(year, data) {
-			// Add this line for debugging
-			console.log("Data for year", year, ":", data);
+    var path = d3.geoPath()
+      .projection(projection);
 
-			// Update your map based on the year and data
-			// This might involve filtering data and redrawing parts of the map
-			d3.select("#currentYear")
-				.text(year)
-				.style("color", "white"); // Update the current year display
+    var svg = d3.select("body")
+      .append("svg")
+      .attr("width", w)
+      .attr("height", h)
+      .attr("fill", "gold");
 
-			// Extract country-wise visitor data and calculate the total visitors
-			var countryVisitorData = {};
-			data.features.forEach(function (d) {
-				var countryName = d.properties.name;
-				var visitors = parseFloat(d.properties.G_Total);
+    var tooltip = d3.select("#tooltip");
 
-				// Summing up visitor data for each country
-				countryVisitorData[countryName] = visitors;
-			});
+    var prevYearButton = document.getElementById("prevYear");
+    var nextYearButton = document.getElementById("nextYear");
+    var currentYearSpan = document.getElementById("currentYear");
 
-			// Color the countries based on the total visitors
-			svg.selectAll(".country")
-				.data(data.features)
-				.style("fill", function (d) {
-					var countryName = d.properties.name;
-					var visitors = countryVisitorData[countryName];
+    prevYearButton.addEventListener("click", function () {
+      currentYearIndex = (currentYearIndex - 1 + years.length) % years.length;
+      updateYearAndVisitorNumber();
+    });
 
-					// Use a color scale or logic based on visitor data to determine the fill color
-					// Example: Using a color scale
-					var colorScale = d3.scaleLinear()
-						.domain([0, d3.max(Object.values(countryVisitorData))])
-						.range(["white", "blue"]);
+    nextYearButton.addEventListener("click", function () {
+      currentYearIndex = (currentYearIndex + 1) % years.length;
+      updateYearAndVisitorNumber();
+    });
 
-					return colorScale(visitors);
-				});
-		}
+    function updateYearAndVisitorNumber() {
+      var currentYear = years[currentYearIndex];
+      currentYearSpan.textContent = currentYear.replace("visitor_", "20");
+      svg.selectAll("path")
+        .style("fill", function (d) {
+          var countryName = d.properties.name;
+          var visitorNumber = getVisitorNumber(countryName, dataset, years[currentYearIndex]);
+          var colorScale = colorScales[years[currentYearIndex]]; // Get the color scale for the current year
+          if (visitorNumber !== "") {
+            return colorScale(visitorNumber);
+          } else {
+            return "gray"; // Set a color for countries with no data for the current year
+          }
+        });
+        
+      tooltip.style("display", "none");
+    }
 
-		// Function to handle year navigation
-		function changeYear(direction) {
-			if (direction === 'next' && currentYearIndex < years.length - 1) {
-				currentYearIndex++;
-			} else if (direction === 'prev' && currentYearIndex > 0) {
-				currentYearIndex--;
-			}
+    function getColor(visitorNumber) {
+      // Create a color scale manually for testing
+      // You can replace this with a more sophisticated scale later
+      var colorScale = d3.scaleLinear()
+        .domain([0, 1000000]) // Adjust the domain as needed
+        .range(["#ffffcc", "#800026"]);
 
-			var currentYear = years[currentYearIndex];
-			d3.csv("Sarawak Visitor Arrivals " + currentYear + ".csv").then(function (data) {
-				updateMapForYear(currentYear, data);
-			});
-		}
+      return colorScale(visitorNumber);
+    }
 
-		// Setting up event listeners for buttons
-		d3.select("#prevYear").on("click", function () { changeYear('prev'); });
-		d3.select("#nextYear").on("click", function () { changeYear('next'); });
+    updateYearAndVisitorNumber(); // Initialize with the first year
 
-		// Load your data from CSV files
-		var files = ["2017", "2018", "2019", "2020", "2021"]; // Update with your file names
-		Promise.all(files.map(file => d3.csv("Sarawak_Visitor_Arrivals_" + file + ".csv")))
-			.then(function (dataArray) {
-				// Extract years from the data and sort them
-				years = files;
+    d3.csv("data.csv").then(function (data) {
+      var dataset = data;
 
-				// Initialize the map with the first year's data
-				updateMapForYear(years[currentYearIndex], dataArray[currentYearIndex]);
-			});
+      console.log(dataset);
 
-		d3.json("world_map.json").then(function (json) {
-			svg.selectAll("path")
-				.data(json.features)
-				.enter()
-				.append("path")
-				.attr("d", path)
-				.attr("class", "country")
-				.on("mouseover", function (event, d) {
-					var centroid = path.centroid(d);
-					var xPosition = centroid[0];
-					var yPosition = centroid[1];
+      d3.json("world_map.json").then(function (json) {
+        svg.selectAll("path")
+          .data(json.features)
+          .enter()
+          .append("path")
+          .attr("d", path)
+          .on("mouseover", function (event, d) {
+            var currentYear = years[currentYearIndex];
+            var centroid = path.centroid(d);
+            var xPosition = centroid[0];
+            var yPosition = centroid[1];
 
-					tooltip.style("display", "block")
-						.html(d.properties.name)
-						.style("left", xPosition + "px")
-						.style("top", yPosition + "px");
+            var countryName = d.properties.name;
+            var visitorNumber = getVisitorNumber(countryName, dataset, currentYear);
 
-					d3.select(this)
-						.style("fill", "orange");
-				})
-				.on("mouseout", function (d) {
-					tooltip.style("display", "none");
-					d3.select(this)
-						.style("fill", "gold");
-				})
-				.on("click", function (d) {
-					console.log("Clicked on", d.properties.name);
-				});
-		});
-	</script>
+            tooltip.style("display", "block")
+              .html(countryName + ": " + visitorNumber) // Display country name and visitor number
+              .style("left", xPosition + "px")
+              .style("top", yPosition + "px");
+
+            d3.select(this)
+              .style("fill", "orange");
+          })
+          .on("mouseout", function (d) {
+            tooltip.style("display", "none")
+            d3.select(this)
+              .style("fill", "gold");
+          })
+          .on("click", function (d) {
+            //console.log("Clicked on", d.properties.name);
+          });
+      });
+    });
+
+    // Function to get the visitor number for a specific country from the dataset
+    function getVisitorNumber(countryName, dataset, currentYear) {
+      var visitorNumber = "";
+      var columnName = "visitor_" + currentYear.toString().substr(-2); // Construct the column name based on the currentYear
+
+      dataset.forEach(function (row) {
+        if (row.Citizenship === countryName) {
+          visitorNumber = row[columnName];
+        }
+      });
+      return visitorNumber;
+    }
+
+    function getYearColumnName(index) {
+      return years[index];
+    }
+  </script>
 </body>
+
 </html>
-	
-	
