@@ -1,0 +1,40 @@
+/* body CSS*/
+body{
+	margin: 0;
+	background-color: black;
+}
+
+/* text center aligned*/
+#center {
+	color: white;
+	text-align: center;
+}
+
+/*CSS for tooltip*/
+#tooltip {
+    position: absolute; 
+    display: none; 
+    background-color: white; 
+    border: 1px solid black; 
+    padding: 5px; 
+    border-radius: 5px; 
+    pointer-events: none;
+}
+
+/*Text color for current year displayed*/
+#currentYear {
+    color: white;
+}
+ 
+ /*Margin for button*/
+button {
+    margin-left: 20px;
+    margin-right: 20px;
+}
+
+/*Hover effect for button*/
+ button:hover {
+	background-color: grey;
+	color: white; /* Text color when hovering */
+	border: 1px solid grey; /* Border color when hovering */
+}
